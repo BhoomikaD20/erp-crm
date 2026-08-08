@@ -1,41 +1,79 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth.routes';
 import customerRoutes from './routes/customer.routes';
 import productRoutes from './routes/product.routes';
 import challanRoutes from './routes/challan.routes';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
-dotenv.config();
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
+/*
+|--------------------------------------------------------------------------
+| Middleware
+|--------------------------------------------------------------------------
+*/
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: true,
     credentials: true,
   })
 );
+
 app.use(express.json());
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/health', (req, res) => res.json({ success: true, message: 'API is up', time: new Date().toISOString() }));
+/*
+|--------------------------------------------------------------------------
+| Health Check
+|--------------------------------------------------------------------------
+*/
 
-app.use('/auth', authRoutes);
-app.use('/customers', customerRoutes);
-app.use('/products', productRoutes);
-app.use('/challans', challanRoutes);
+app.get('/api/health', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'ERP CRM API is running',
+  });
+});
 
-app.use(notFoundHandler);
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/challans', challanRoutes);
+
+/*
+|--------------------------------------------------------------------------
+| 404 Handler
+|--------------------------------------------------------------------------
+*/
+
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Error Handler
+|--------------------------------------------------------------------------
+*/
+
 app.use(errorHandler);
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`ERP/CRM API listening on port ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 export default app;
